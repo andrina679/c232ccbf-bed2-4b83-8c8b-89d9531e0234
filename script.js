@@ -130,35 +130,60 @@ The {{companyName}} Team`,
 }
 
 // Theme management
+// Available themes configuration - Add new themes here!
+const AVAILABLE_THEMES = [
+    { id: 'dark', name: 'Dark', icon: '🌙', hidden: false },
+    { id: 'light', name: 'Light', icon: '☀️', hidden: false },
+    { id: 'girly', name: 'Girly', icon: '💖', hidden: false },
+    { id: 'cyberpunk', name: 'Cyberpunk', icon: '🤖', hidden: false },
+    // Hidden themes (accessible only via URL: ?theme=themeid)
+    { id: 'matrix', name: 'Matrix', icon: '🟢', hidden: true }
+];
+
 function setTheme(theme) {
+    // Validate theme exists
+    const themeExists = AVAILABLE_THEMES.some(t => t.id === theme);
+    if (!themeExists) {
+        console.warn(`Theme "${theme}" not found, using dark theme`);
+        theme = 'dark';
+    }
+    
     document.body.className = `theme-${theme}`;
-    setCookie('theme', theme);
-    window.location.hash = `theme=${theme}`;
-    showToast(`${theme.charAt(0).toUpperCase() + theme.slice(1)} mode activated! ✨`);
+    setCookie('theme', theme, 365); // Save for 1 year
+    
+    const themeName = AVAILABLE_THEMES.find(t => t.id === theme)?.name || theme;
+    showToast(`${themeName} mode activated! ✨`);
 }
 
 function loadTheme() {
-    // Check URL hash first
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const urlTheme = params.get('theme');
+    // Check URL parameters first (for hidden themes)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTheme = urlParams.get('theme');
     
-    // Use URL theme if available, otherwise use cookie, otherwise default to 'dark'
-    const theme = urlTheme || getCookie('theme') || 'dark';
+    // Get saved theme from cookie, default to 'dark'
+    const savedTheme = getCookie('theme') || 'dark';
     
-    // Validate theme
-    const validThemes = ['dark', 'light', 'girly'];
-    const finalTheme = validThemes.includes(theme) ? theme : 'dark';
+    // Use URL theme if provided, otherwise use saved theme
+    const requestedTheme = urlTheme || savedTheme;
+    
+    // Validate theme exists
+    const validThemeIds = AVAILABLE_THEMES.map(t => t.id);
+    const finalTheme = validThemeIds.includes(requestedTheme) ? requestedTheme : 'dark';
     
     document.body.className = `theme-${finalTheme}`;
     
-    // Update URL hash if not already set
-    if (!urlTheme) {
-        window.location.hash = `theme=${finalTheme}`;
-    }
-    
     // Save to cookie
-    setCookie('theme', finalTheme);
+    setCookie('theme', finalTheme, 365);
+    
+    // If URL theme was used, show a notification
+    if (urlTheme && validThemeIds.includes(urlTheme)) {
+        const theme = AVAILABLE_THEMES.find(t => t.id === urlTheme);
+        if (theme && theme.hidden) {
+            setTimeout(() => {
+                showToast(`🔓 Hidden theme unlocked: ${theme.name}!`);
+            }, 500);
+        }
+    }
 }
 
 function saveStories() {

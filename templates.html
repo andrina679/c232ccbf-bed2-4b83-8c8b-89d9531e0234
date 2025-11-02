@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Editor - Multi-Tool App</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .back-btn {
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body class="theme-dark">
+    <div class="container">
+        <a href="index.html" class="btn btn-secondary back-btn">
+            ← Back to Home
+        </a>
+
+        <header>
+            <h1>📝 Template Editor</h1>
+            <p class="subtitle">Create and manage templates with customizable variables</p>
+        </header>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="showAddStoryModal()">+ Add New Template</button>
+            <button class="btn btn-danger" onclick="clearAllData()">Clear All Data</button>
+        </div>
+
+        <div id="storiesContainer" class="stories-container">
+            <!-- Templates will be rendered here -->
+        </div>
+
+        <!-- Add/Edit Template Modal -->
+        <div id="storyModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Add New Template</h2>
+                    <span class="close" onclick="closeStoryModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="storyTitle">Template Title</label>
+                        <input type="text" id="storyTitle" placeholder="Enter template title">
+                    </div>
+                    <div class="form-group">
+                        <label for="storyText">Template Text</label>
+                        <textarea id="storyText" rows="8" placeholder="Enter your template here. Use {varname} or {{varname}} for variables."></textarea>
+                        <small>Use {varname} or {{varname}} to mark variables that can be replaced</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Variables</label>
+                        <div id="storyVariablesEdit" class="variables-edit-container">
+                            <p class="info-text">Variables will appear here automatically as you type them in the template text</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeStoryModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveStory()">Save Template</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Variable Editor Modal -->
+        <div id="variableModal" class="modal">
+            <div class="modal-content variable-modal-large">
+                <div class="modal-header">
+                    <h2>Edit Variables & Copy</h2>
+                    <span class="close" onclick="closeVariableModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="variable-editor-layout">
+                        <div class="variables-section">
+                            <h3>📝 Variables</h3>
+                            <div id="variablesContainer" class="variables-list">
+                                <!-- Variable inputs will be rendered here -->
+                            </div>
+                        </div>
+                        <div class="preview-section">
+                            <h3>👁️ Preview</h3>
+                            <div id="storyPreview" class="story-preview">
+                                <!-- Preview will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeVariableModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="copyStoryWithVariables()">📋 Copy to Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+        });
+    </script>
+</body>
+</html>

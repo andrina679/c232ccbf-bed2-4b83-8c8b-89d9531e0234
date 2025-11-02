@@ -21,7 +21,13 @@
 <input type="range" id="speedRange" min="0.1" max="3" step="0.1" value="1" />
 <br /><br />
 
-<button id="convertBtn" disabled>Convert to GIF (Original + Reversed)</button>
+<label>
+  <input type="checkbox" id="reverseCheckbox" checked />
+  Include reversed playback (ping-pong effect)
+</label>
+<br /><br />
+
+<button id="convertBtn" disabled>Convert to GIF</button>
 
 <p>Status: <span id="status">Waiting for video...</span></p>
 
@@ -44,6 +50,7 @@
   const speedRange = document.getElementById('speedRange');
   const speedValue = document.getElementById('speedValue');
   const outputGif = document.getElementById('outputGif');
+  const reverseCheckbox = document.getElementById('reverseCheckbox');
 
   let videoDuration = 0;
 
@@ -119,15 +126,22 @@
       }
 
       // Capture frames in normal order
-      status.textContent = 'Capturing frames forward...';
+      status.textContent = 'Capturing frames...';
       const framesForward = await captureFrames(video, speed, progress => {
-        status.textContent = `Capturing frames forward... ${(progress*100).toFixed(1)}%`;
+        status.textContent = `Capturing frames... ${(progress*100).toFixed(1)}%`;
       });
-      // Reverse frames for backward playback, skipping last frame to avoid duplicate
-      const framesBackward = framesForward.slice(0, framesForward.length - 1).reverse();
-
-      // Combine frames forward + reversed
-      const allFrames = framesForward.concat(framesBackward);
+      
+      // Check if user wants reversed playback
+      let allFrames;
+      if (reverseCheckbox.checked) {
+        // Reverse frames for backward playback, skipping last frame to avoid duplicate
+        const framesBackward = framesForward.slice(0, framesForward.length - 1).reverse();
+        // Combine frames forward + reversed
+        allFrames = framesForward.concat(framesBackward);
+      } else {
+        // Just use original frames
+        allFrames = framesForward;
+      }
 
       // Create GIF with gif.js
       status.textContent = 'Encoding GIF...';
