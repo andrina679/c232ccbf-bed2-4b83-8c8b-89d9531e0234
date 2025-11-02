@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MP4 to GIF with Speed and Reverse</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 640px; margin: 1em auto; }
+  video, canvas { max-width: 100%; }
+  #outputGif { margin-top: 1em; }
+</style>
+</head>
+<body>
+
+<h2>MP4 to GIF Converter (Speed & Reverse)</h2>
+
+<input type="file" id="videoInput" accept="video/mp4" />
+<br /><br />
+
+<label for="speedRange">Playback speed: <span id="speedValue">1</span>x</label><br />
+<input type="range" id="speedRange" min="0.1" max="3" step="0.1" value="1" />
+<br /><br />
+
+<button id="convertBtn" disabled>Convert to GIF (Original + Reversed)</button>
+
+<p>Status: <span id="status">Waiting for video...</span></p>
+
+<div>
+  <video id="video" controls style="display:none;"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+</div>
+
+<div id="outputGif"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+<script>
+(() => {
+  const videoInput = document.getElementById('videoInput');
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const convertBtn = document.getElementById('convertBtn');
+  const status = document.getElementById('status');
+  const speedRange = document.getElementById('speedRange');
+  const speedValue = document.getElementById('speedValue');
+  const outputGif = document.getElementById('outputGif');
+
+  let videoDuration = 0;
+
+  speedRange.addEventListener('input', () => {
+    speedValue.textContent = speedRange.value;
+  });
+
+  videoInput.addEventListener('change', () => {
+    const file = videoInput.files[0];
+    if(!file) {
+      convertBtn.disabled = true;
+      status.textContent = 'No file loaded';
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.load();
+    video.style.display = 'block';
+    status.textContent = 'Video loaded. Set speed and click Convert.';
+    convertBtn.disabled = false;
+  });
+
+  function captureFrames(video, speed, onProgress) {
+    return new Promise((resolve, reject) => {
+      const frames = [];
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      let currentTime = 0;
+      const interval = 1 / (30 * speed); // Capture at 30 fps adjusted by speed
+
+      function captureFrame() {
+        if (currentTime > video.duration) {
+          resolve(frames);
+          return;
+        }
+        video.currentTime = currentTime;
+      }
+
+      video.addEventListener('seeked', function onSeeked() {
+        // Draw frame to canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Capture frame as ImageData for gif.js
+        frames.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        if(onProgress) onProgress(currentTime / video.duration);
+        currentTime += interval;
+        if (currentTime > video.duration) {
+          video.removeEventListener('seeked', onSeeked);
+          resolve(frames);
+        } else {
+          // Trigger next seek
+          captureFrame();
+        }
+      });
+
+      // Start capturing first frame
+      captureFrame();
+    });
+  }
+
+  convertBtn.addEventListener('click', async () => {
+    convertBtn.disabled = true;
+    outputGif.innerHTML = '';
+    status.textContent = 'Converting...';
+
+    try {
+      const speed = parseFloat(speedRange.value);
+      // Ensure video metadata loaded
+      if (!video.duration) {
+        await new Promise(res => video.onloadedmetadata = res);
+      }
+
+      // Capture frames in normal order
+      status.textContent = 'Capturing frames forward...';
+      const framesForward = await captureFrames(video, speed, progress => {
+        status.textContent = `Capturing frames forward... ${(progress*100).toFixed(1)}%`;
+      });
+      // Reverse frames for backward playback, skipping last frame to avoid duplicate
+      const framesBackward = framesForward.slice(0, framesForward.length - 1).reverse();
+
+      // Combine frames forward + reversed
+      const allFrames = framesForward.concat(framesBackward);
+
+      // Create GIF with gif.js
+      status.textContent = 'Encoding GIF...';
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: canvas.width,
+        height: canvas.height,
+        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js',
+        transparent: null,
+      });
+
+      // Add frames to gif
+      allFrames.forEach(frame => {
+        gif.addFrame(frame, {delay: 100 / speed}); // delay in ms; approximate fps 10fps; speed-adjusted
+      });
+
+      gif.on('progress', p => {
+        status.textContent = `Encoding GIF... ${(p*100).toFixed(1)}%`;
+      });
+
+      gif.on('finished', (blob) => {
+        status.textContent = 'GIF created!';
+        const url = URL.createObjectURL(blob);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Converted GIF';
+        outputGif.appendChild(img);
+        convertBtn.disabled = false;
+      });
+
+      gif.render();
+
+    } catch (e) {
+      status.textContent = 'Error: ' + e.message;
+      convertBtn.disabled = false;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
