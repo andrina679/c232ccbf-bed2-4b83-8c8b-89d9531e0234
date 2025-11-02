@@ -74,7 +74,8 @@
       canvas.height = video.videoHeight;
 
       let currentTime = 0;
-      const interval = 1 / (30 * speed); // Capture at 30 fps adjusted by speed
+      const targetFPS = 30; // Target FPS for GIF output
+      const interval = 1 / targetFPS; // Capture every 1/30th second of video time
 
       function captureFrame() {
         if (currentTime > video.duration) {
@@ -140,8 +141,15 @@
       });
 
       // Add frames to gif
+      // Each frame represents 1/30th second of video time
+      // To adjust for speed: delay = (1/30 seconds) / speed * 1000ms
+      // At 1x speed: 33.33ms per frame (30fps)
+      // At 2x speed: 16.67ms per frame (plays faster)
+      // At 0.5x speed: 66.67ms per frame (plays slower)
+      const targetFPS = 30;
+      const frameDelay = Math.round((1000 / targetFPS) / speed);
       allFrames.forEach(frame => {
-        gif.addFrame(frame, {delay: 100 / speed}); // delay in ms; approximate fps 10fps; speed-adjusted
+        gif.addFrame(frame, {delay: frameDelay});
       });
 
       gif.on('progress', p => {
